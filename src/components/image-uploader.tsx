@@ -71,9 +71,23 @@ export function ImageUploader({
         reader.readAsDataURL(file);
         const base64 = await base64Promise;
 
+        // 上传到服务器获取公开 URL
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ image: base64 }),
+        });
+
+        const result = await response.json();
+
+        // 使用服务器返回的 URL，而不是 base64
+        const imageUrl = result.success && result.url ? result.url : base64;
+
         const uploaded: UploadedImage = {
           id,
-          url: base64,
+          url: imageUrl,
           name: file.name,
           type,
         };

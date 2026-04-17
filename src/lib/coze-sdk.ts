@@ -116,10 +116,12 @@ export interface GenerationResult {
 
 /**
  * 调用火山方舟 Seedream 生成图像
+ * 支持图生图：将窗帘商品样式应用到场景中
  */
 async function callArkImageGeneration(
   prompt: string,
-  referenceImages?: string[],
+  sceneImage: string,
+  curtainImages: string[] = [],
   onProgress?: (progress: number, message: string) => void
 ): Promise<GenerationResult> {
   try {
@@ -138,17 +140,22 @@ async function callArkImageGeneration(
     const requestBody: Record<string, unknown> = {
       model: 'ep-20260417093524-5qxv2',
       prompt,
-      sequential_image_generation: 'disabled',
       response_format: 'url',
       size: '2K',
       stream: false,
       watermark: false,
     };
 
-    // 如果有参考图片，添加到请求中
-    if (referenceImages && referenceImages.length > 0) {
-      // 火山方舟 API 的图生图参数
-      (requestBody as Record<string, unknown>).image = referenceImages[0];
+    // 图生图：传入参考图片
+    // Seedream 支持 image 参数，第一个是场景图，后面的是窗帘商品图
+    if (curtainImages.length > 0) {
+      // 同时传入场景图和窗帘商品图
+      requestBody.image = [sceneImage, ...curtainImages];
+      onProgress?.(15, '已加载参考图片');
+    } else if (sceneImage) {
+      // 只有场景图（用于新增挂装或风格生成）
+      requestBody.image = sceneImage;
+      onProgress?.(15, '已加载场景图片');
     }
 
     onProgress?.(20, '正在生成...');
@@ -215,16 +222,15 @@ export async function generateCurtainImage(
     const prompt = buildPrompt(options, sceneAnalysis);
     onProgress?.(25, '正在生成效果图...');
 
-    // 准备参考图片
-    const referenceImages = [
+    // 调用火山方舟 API，传入场景图和窗帘商品图
+    const result = await callArkImageGeneration(
+      prompt,
       options.sceneImage,
-      ...options.curtainImages,
-    ].filter(Boolean);
-
-    // 调用火山方舟 API
-    const result = await callArkImageGeneration(prompt, referenceImages, (progress, message) => {
-      onProgress?.(25 + progress * 0.7, message);
-    });
+      options.curtainImages,
+      (progress, message) => {
+        onProgress?.(25 + progress * 0.7, message);
+      }
+    );
 
     if (result.success) {
       onProgress?.(100, '生成完成');
