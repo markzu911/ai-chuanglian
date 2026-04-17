@@ -10,7 +10,8 @@
 - **Language**: TypeScript 5
 - **UI 组件**: shadcn/ui (基于 Radix UI)
 - **Styling**: Tailwind CSS 4
-- **AI SDK**: coze-coding-dev-sdk (LLM + Image Generation)
+- **AI SDK**: coze-coding-dev-sdk (LLM 多模态理解)
+- **图像生成**: 火山方舟 Seedream (ark.cn-beijing.volces.com)
 
 ## 目录结构
 
@@ -136,3 +137,44 @@ interface GenerateResponse {
 
 - 模板默认预装核心组件库 `shadcn/ui`，位于`src/components/ui/`目录下
 - Next.js 项目**必须默认**采用 shadcn/ui 组件、风格和规范，**除非用户指定用其他的组件和规范。**
+
+## 火山方舟 API 配置
+
+### 环境变量配置
+
+```bash
+# 火山方舟 API Key（必须）
+export ARK_API_KEY="your_api_key_here"
+
+# 火山方舟 API 地址
+export ARK_API_BASE="https://ark.cn-beijing.volces.com/api/v3"
+
+# LLM API Key（用于场景分析）
+export COZE_WORKLOAD_IDENTITY_API_KEY="your_llm_api_key"
+```
+
+### API 调用示例
+
+```typescript
+// 火山方舟 Seedream 模型调用
+const response = await fetch('https://ark.cn-beijing.volces.com/api/v3/images/generations', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${process.env.ARK_API_KEY}`,
+  },
+  body: JSON.stringify({
+    model: 'ep-20260417093524-5qxv2',
+    prompt: '你的提示词',
+    response_format: 'url',
+    size: '2K',
+  }),
+});
+```
+
+### 模型说明
+
+- **模型 ID**: `ep-20260417093524-5qxv2`
+- **支持尺寸**: 2K (2048x2048), 4K (4096x4096)
+- **支持功能**: 文生图、图生图
+- **API 文档**: https://www.volcengine.com/docs/82379/1399008
