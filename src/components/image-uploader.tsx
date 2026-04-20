@@ -20,6 +20,8 @@ interface ImageUploaderProps {
   maxCount?: number;
   disabled?: boolean;
   className?: string;
+  title?: string;
+  description?: string;
 }
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
@@ -32,6 +34,8 @@ export function ImageUploader({
   maxCount = type === 'scene' ? 1 : 5,
   disabled = false,
   className,
+  title,
+  description,
 }: ImageUploaderProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadingIds, setUploadingIds] = useState<Set<string>>(new Set());
@@ -160,12 +164,15 @@ export function ImageUploader({
           <ImageIcon className="w-5 h-5 text-muted-foreground" />
         )}
         <span className="font-medium">
-          {type === 'scene' ? '客户现场照片' : '窗帘商品图'}
+          {title || (type === 'scene' ? '客户现场照片' : '窗帘商品图')}
         </span>
         <span className="text-sm text-muted-foreground">
           ({value.length}/{maxCount})
         </span>
       </div>
+      {description && (
+        <p className="text-sm text-muted-foreground -mt-2">{description}</p>
+      )}
 
       {/* 上传区域 */}
       {canAddMore && (

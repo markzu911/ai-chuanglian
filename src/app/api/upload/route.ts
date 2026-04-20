@@ -4,6 +4,8 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 
+export const runtime = 'nodejs';
+
 export interface UploadResponse {
   success: boolean;
   url?: string;
@@ -71,7 +73,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
     await fs.writeFile(filePath, imageBuffer);
 
     // 构建可访问的 URL
-    const baseUrl = process.env.COZE_PROJECT_DOMAIN_DEFAULT || `http://localhost:${process.env.DEPLOY_RUN_PORT || 5000}`;
+    const baseUrl = process.env.COZE_PROJECT_DOMAIN_DEFAULT || request.nextUrl.origin;
     const imageUrl = `${baseUrl}/uploads/${filename}`;
 
     return NextResponse.json({

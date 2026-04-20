@@ -98,3 +98,14 @@ Desktop.ini
 .turbo
 
 .coze-logs
+
+# Project-specific
+scratch/
+public/uploads/
+.codex
+
+# Test images dropped at repo root (timestamped)
+/[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]-*.jpg
+
+# Local-only spec/reference docs (not to be shared)
+/API_SPEC (1).md

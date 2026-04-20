@@ -5,20 +5,14 @@
 'use client';
 
 import { useState, useCallback, useRef } from 'react';
+import type {
+  CurtainReference,
+  CurtainStructure,
+  GenerateRequestPayload,
+  SceneAnalysisResult,
+} from '@/lib/curtain-ai-types';
 
-export interface SceneAnalysis {
-  hasCurtain: boolean;
-  windowRegions: Array<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-    hasCurtain: boolean;
-    curtainType?: string;
-  }>;
-  recommendedMode: 'replace' | 'add';
-  sceneDescription: string;
-}
+export type SceneAnalysis = SceneAnalysisResult;
 
 export interface GenerationState {
   isGenerating: boolean;
@@ -29,13 +23,7 @@ export interface GenerationState {
   error: string | null;
 }
 
-export interface GenerateOptions {
-  sceneImage: string;
-  curtainImages?: string[];
-  mode?: 'replace' | 'add' | 'auto';
-  style?: string;
-  count?: number;
-}
+export type GenerateOptions = GenerateRequestPayload;
 
 /**
  * AI 生图 Hook
@@ -120,8 +108,8 @@ export function useImageGeneration() {
               case 'progress':
                 setState((prev) => ({
                   ...prev,
-                  progress: event.data as number,
-                  message: typeof event.data === 'string' ? event.data : '',
+                  progress: typeof event.progress === 'number' ? event.progress : prev.progress,
+                  message: typeof event.data === 'string' ? event.data : prev.message,
                 }));
                 break;
 

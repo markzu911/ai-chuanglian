@@ -11,8 +11,10 @@ import { cn } from '@/lib/utils';
 
 export interface GenerationOptions {
   mode: 'replace' | 'add' | 'auto';
+  structure: 'auto' | 'single' | 'double';
   style: string;
   count: number;
+  showcaseAngles: Array<'vertical' | 'horizontal' | 'detail' | 'scene'>;
 }
 
 interface GenerationPanelProps {
@@ -26,6 +28,7 @@ interface GenerationPanelProps {
   onReset: () => void;
   disabled?: boolean;
   canGenerate?: boolean;
+  pageMode?: 'scene' | 'showcase';
 }
 
 const STYLE_OPTIONS = [
@@ -43,6 +46,19 @@ const COUNT_OPTIONS = [
   { value: 3, label: '3 张对比' },
 ];
 
+const SHOWCASE_ANGLE_OPTIONS = [
+  { value: 'vertical' as const, label: '竖版', description: '竖版艺术大片' },
+  { value: 'horizontal' as const, label: '横版', description: '横版艺术大片' },
+  { value: 'detail' as const, label: '细节', description: '特写/局部' },
+  { value: 'scene' as const, label: '场景', description: '完整空间故事' },
+];
+
+const STRUCTURE_OPTIONS = [
+  { value: 'auto', label: '自动识别', description: '系统根据现场图和商品图判断单层或双层' },
+  { value: 'single', label: '单层窗帘', description: '只生成单层主帘或纱帘结构' },
+  { value: 'double', label: '双层窗帘', description: '保留布帘 + 纱帘的双层结构' },
+] as const;
+
 export function GenerationPanel({
   options,
   onOptionsChange,
@@ -54,20 +70,22 @@ export function GenerationPanel({
   onReset,
   disabled = false,
   canGenerate = true,
+  pageMode = 'scene',
 }: GenerationPanelProps) {
   return (
     <Card className="p-6 space-y-6">
-      {/* 模式选择 */}
-      <div className="space-y-3">
-        <Label className="text-base font-medium">生成模式</Label>
-        <RadioGroup
-          value={options.mode}
-          onValueChange={(value) =>
-            onOptionsChange({ ...options, mode: value as GenerationOptions['mode'] })
-          }
-          disabled={disabled || isGenerating}
-          className="grid grid-cols-1 sm:grid-cols-3 gap-3"
-        >
+      {/* 模式选择 - 仅在场景模式下显示 */}
+      {pageMode === 'scene' && (
+        <div className="space-y-3">
+          <Label className="text-base font-medium">生成模式</Label>
+          <RadioGroup
+            value={options.mode}
+            onValueChange={(value) =>
+              onOptionsChange({ ...options, mode: value as GenerationOptions['mode'] })
+            }
+            disabled={disabled || isGenerating}
+            className="grid grid-cols-1 sm:grid-cols-3 gap-3"
+          >
           <div>
             <RadioGroupItem value="auto" id="mode-auto" className="peer sr-only" />
             <Label
@@ -117,7 +135,38 @@ export function GenerationPanel({
             </Label>
           </div>
         </RadioGroup>
-      </div>
+        </div>
+      )}
+
+      {/* 结构选择 - 仅在场景模式下显示 */}
+      {pageMode === 'scene' && (
+        <div className="space-y-3">
+          <Label className="text-base font-medium">窗帘结构</Label>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {STRUCTURE_OPTIONS.map((option) => (
+            <Button
+              key={option.value}
+              variant={options.structure === option.value ? 'default' : 'outline'}
+              size="sm"
+              disabled={disabled || isGenerating}
+              onClick={() =>
+                onOptionsChange({
+                  ...options,
+                  structure: option.value,
+                })
+              }
+              className={cn(
+                'h-auto min-h-16 flex-col items-start justify-center gap-1 whitespace-normal py-3 text-left',
+                options.structure === option.value && 'bg-primary text-primary-foreground'
+              )}
+            >
+              <span>{option.label}</span>
+              <span className="text-xs opacity-80">{option.description}</span>
+            </Button>
+          ))}
+        </div>
+        </div>
+      )}
 
       {/* 风格选择 */}
       <div className="space-y-3">
@@ -141,17 +190,18 @@ export function GenerationPanel({
         </div>
       </div>
 
-      {/* 生成数量 */}
-      <div className="space-y-3">
-        <Label className="text-base font-medium">生成数量</Label>
-        <div className="flex gap-2">
-          {COUNT_OPTIONS.map((opt) => (
-            <Button
-              key={opt.value}
-              variant={options.count === opt.value ? 'default' : 'outline'}
-              size="sm"
-              disabled={disabled || isGenerating}
-              onClick={() => onOptionsChange({ ...options, count: opt.value })}
+      {/* 生成数量 - 仅在场景模式下显示 */}
+      {pageMode === 'scene' && (
+        <div className="space-y-3">
+          <Label className="text-base font-medium">生成数量</Label>
+          <div className="flex gap-2">
+            {COUNT_OPTIONS.map((opt) => (
+              <Button
+                key={opt.value}
+                variant={options.count === opt.value ? 'default' : 'outline'}
+                size="sm"
+                disabled={disabled || isGenerating}
+                onClick={() => onOptionsChange({ ...options, count: opt.value })}
               className={cn(
                 options.count === opt.value && 'bg-primary text-primary-foreground'
               )}
@@ -160,7 +210,47 @@ export function GenerationPanel({
             </Button>
           ))}
         </div>
-      </div>
+        </div>
+      )}
+
+      {/* 艺术展示角度 - 仅在 showcase 模式下显示 */}
+      {pageMode === 'showcase' && (
+        <div className="space-y-3">
+          <Label className="text-base font-medium">
+            展示角度（多选，{options.showcaseAngles.length} 张）
+          </Label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {SHOWCASE_ANGLE_OPTIONS.map((opt) => {
+              const selected = options.showcaseAngles.includes(opt.value);
+              return (
+                <Button
+                  key={opt.value}
+                  variant={selected ? 'default' : 'outline'}
+                  size="sm"
+                  disabled={disabled || isGenerating}
+                  onClick={() => {
+                    const next = selected
+                      ? options.showcaseAngles.filter((a) => a !== opt.value)
+                      : [...options.showcaseAngles, opt.value];
+                    if (next.length === 0) return; // 至少保留一个
+                    onOptionsChange({ ...options, showcaseAngles: next });
+                  }}
+                  className={cn(
+                    'h-auto min-h-14 flex-col items-center justify-center gap-0.5 py-2',
+                    selected && 'bg-primary text-primary-foreground'
+                  )}
+                >
+                  <span className="font-medium">{opt.label}</span>
+                  <span className="text-xs opacity-80">{opt.description}</span>
+                </Button>
+              );
+            })}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            可按需勾选，生成越少越省成本（并行出图，速度更快）
+          </p>
+        </div>
+      )}
 
       {/* 进度条 */}
       {isGenerating && (
