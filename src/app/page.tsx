@@ -4,13 +4,14 @@
  */
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ScanSearch, Shirt } from 'lucide-react';
 import { ImageUploader, UploadedImage } from '@/components/image-uploader';
 import { GenerationPanel, GenerationOptions } from '@/components/generation-panel';
 import { GeneratedResult } from '@/components/curtain-display';
 import { SceneAnalysisEditor } from '@/components/scene-analysis-editor';
 import { useImageGeneration } from '@/hooks/use-image-generation';
+import { useSaas } from '@/hooks/use-saas';
 import type {
   CurtainReference,
   CurtainReferenceRole,
@@ -58,9 +59,14 @@ export default function Home() {
     reset,
   } = useImageGeneration();
 
+  const saas = useSaas();
+  const consumedKeyRef = useRef<string | null>(null);
+  const [saasAlert, setSaasAlert] = useState<string | null>(null);
+
   const canGenerate =
     (pageMode === 'scene' ? sceneImage !== null : singleCurtainImages.length > 0) &&
-    !isGenerating;
+    !isGenerating &&
+    saas.hasEnoughIntegral;
 
   const analyzeSceneImage = useCallback(async (imageUrl: string) => {
     setIsAnalyzing(true);
@@ -111,7 +117,22 @@ export default function Home() {
     }
   }, [sceneAnalysis]);
 
-  const handleGenerate = useCallback(() => {
+  const handleGenerate = useCallback(async () => {
+    setSaasAlert(null);
+
+    if (saas.isConnected) {
+      const verifyResult = await saas.verify();
+      if (!verifyResult.ok) {
+        setSaasAlert(verifyResult.message || '积分不足，请联系管理员充值');
+        return;
+      }
+    }
+
+    consumedKeyRef.current = null;
+
+    const saasContext = saas.context.context || undefined;
+    const saasPrompt = saas.context.prompt.length > 0 ? saas.context.prompt : undefined;
+
     if (pageMode === 'showcase') {
       // 艺术展示模式
       if (!singleCurtainImages.length) return;
@@ -124,6 +145,8 @@ export default function Home() {
         count: 1,
         curtainImages: singleCurtainImages.map((img) => img.url),
         showcaseAngles: options.showcaseAngles,
+        saasContext,
+        saasPrompt,
       });
     } else {
       // 场景替换模式
@@ -146,6 +169,8 @@ export default function Home() {
         count: options.count,
         curtainStructure: options.structure,
         sceneAnalysisOverride: editableSceneAnalysis || undefined,
+        saasContext,
+        saasPrompt,
       });
     }
   }, [
@@ -157,7 +182,22 @@ export default function Home() {
     sheerCurtainImages,
     editableSceneAnalysis,
     startGeneration,
+    saas,
   ]);
+
+  // 生成成功后扣积分（只在每次 generatedImages 首次出现时触发一次）
+  useEffect(() => {
+    if (!saas.isConnected) return;
+    if (isGenerating) return;
+    if (error) return;
+    if (generatedImages.length === 0) return;
+
+    const key = generatedImages.join('|');
+    if (consumedKeyRef.current === key) return;
+
+    consumedKeyRef.current = key;
+    void saas.consume();
+  }, [isGenerating, generatedImages, error, saas]);
 
   const handleReset = useCallback(() => {
     reset();
@@ -193,6 +233,24 @@ export default function Home() {
                 </p>
               </div>
             </div>
+            {saas.isConnected && (
+              <div className="flex items-center gap-2 text-sm">
+                {saas.userInfo && (
+                  <Badge variant="secondary">
+                    {saas.userInfo.name}
+                    {saas.userInfo.enterprise ? ` · ${saas.userInfo.enterprise}` : ''}
+                  </Badge>
+                )}
+                {saas.currentIntegral !== null && (
+                  <Badge variant={saas.hasEnoughIntegral ? 'default' : 'destructive'}>
+                    剩余积分 {saas.currentIntegral}
+                  </Badge>
+                )}
+                {saas.requiredIntegral !== null && (
+                  <Badge variant="outline">本次消耗 {saas.requiredIntegral}</Badge>
+                )}
+              </div>
+            )}
           </div>
           
           {/* 模式选择 */}
@@ -339,6 +397,20 @@ export default function Home() {
                   description="上传1张清晰的窗帘商品图，可在右侧勾选要生成的角度（1-4 张，按需选择更省成本）。"
                 />
               </>
+            )}
+
+            {saasAlert && (
+              <Alert variant="destructive">
+                <AlertDescription>{saasAlert}</AlertDescription>
+              </Alert>
+            )}
+
+            {saas.isConnected && !saas.hasEnoughIntegral && !saasAlert && (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  积分不足，当前 {saas.currentIntegral} / 需要 {saas.requiredIntegral}，请联系管理员充值后再生成。
+                </AlertDescription>
+              </Alert>
             )}
 
             {error && (

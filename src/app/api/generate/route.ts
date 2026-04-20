@@ -10,6 +10,7 @@ import type {
   GenerateRequestPayload,
   SceneAnalysisResult,
 } from '@/lib/curtain-ai-types';
+import { mergePromptWithSaas } from '@/lib/saas-utils';
 
 export const runtime = 'nodejs';
 
@@ -53,6 +54,9 @@ export async function POST(request: NextRequest) {
     const curtainReferences = normalizeCurtainReferences(body.curtainReferences, body.curtainImages);
     const curtainStructure = normalizeCurtainStructure(body.curtainStructure, curtainReferences);
 
+    // 合成最终提示词：内部预设风格 + SaaS context + SaaS prompt[]
+    const mergedStyle = mergePromptWithSaas(body.style, body.saasContext, body.saasPrompt);
+
     // 创建 SSE 流
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
@@ -81,7 +85,7 @@ export async function POST(request: NextRequest) {
             const results = await generateCurtainShowcase(
               {
                 curtainImage,
-                style: body.style,
+                style: mergedStyle,
                 angles: body.showcaseAngles && body.showcaseAngles.length > 0 ? body.showcaseAngles : undefined,
                 angle: 'all',
               },
@@ -130,7 +134,7 @@ export async function POST(request: NextRequest) {
               sceneImage: body.sceneImage,
               curtainReferences,
               mode: finalMode,
-              style: body.style,
+              style: mergedStyle,
               curtainStructure,
               sceneAnalysisOverride: sceneAnalysis,
             }, (progress, message) => {
@@ -157,7 +161,7 @@ export async function POST(request: NextRequest) {
                 sceneImage: body.sceneImage,
                 curtainReferences,
                 mode: finalMode,
-                style: body.style,
+                style: mergedStyle,
                 curtainStructure,
                 sceneAnalysisOverride: sceneAnalysis,
               },

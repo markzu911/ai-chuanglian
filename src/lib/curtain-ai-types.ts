@@ -40,4 +40,8 @@ export interface GenerateRequestPayload {
   curtainStructure?: CurtainStructure;
   sceneAnalysisOverride?: SceneAnalysisResult;
   showcaseAngles?: ShowcaseAngle[];
+  /** SaaS 传入的内容主体（postMessage.context），由后端合成到最终 prompt */
+  saasContext?: string;
+  /** SaaS 传入的补充关键词（postMessage.prompt 数组），由后端合成到最终 prompt */
+  saasPrompt?: string[];
 }

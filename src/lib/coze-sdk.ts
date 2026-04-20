@@ -133,10 +133,20 @@ function buildPrompt(options: GenerateOptions, sceneAnalysis: SceneAnalysisResul
 - 严禁修改房间空间结构、墙体位置、地板范围、天花线条、家具位置、窗框轮廓
 - 严禁改变机位、焦距、透视角度——斜视角必须保持斜视角
 
-【Negative Prompt · 必须避免】
+【Negative Prompt · 画面质量】
 塑料感、油画感、卡通化、过曝、过饱和、HDR 痕迹、AI 合成边缘、肌理崩坏、
 褶皱不自然、布料漂浮、光影方向冲突、墙体扭曲、家具变形、构图被裁切、
-低质灯光、舞台感、彩虹色光晕、廉价丝绸光泽、过度对称的伪豪华`;
+低质灯光、舞台感、彩虹色光晕、廉价丝绸光泽、过度对称的伪豪华。
+
+【Negative Prompt · 禁止出现任何平台 / 社媒 / UI 痕迹（硬禁）】
+- 绝对禁止任何直播标签：LIVE 标、"直播中"角标、红点录制圆圈、播放/暂停按钮、音量/静音图标
+- 绝对禁止任何相册/图集 UI：页码计数器（如 1/2、1/3、1/9）、左右切换箭头（‹ ›）、小圆点分页指示器、进度条
+- 绝对禁止任何平台水印或 logo：小红书、抖音、快手、淘宝、拼多多、京东、微信、Instagram、TikTok、Xiaohongshu、Douyin 等平台标志
+- 绝对禁止任何叠加文字 / 贴纸：价格标签、"推广"字样、品牌名、商品标题、优惠券、emoji 贴纸、表情包、手写字、字幕条
+- 绝对禁止任何社交互动 UI：点赞爱心、评论图标、收藏星标、分享/转发按钮、购物车、"加入购物车"按钮
+- 绝对禁止任何画面切片 / 多图拼接：底边/侧边不得露出"下一张图"的边缘、不得出现分屏/拼图/九宫格效果、不得出现缩略图条
+- 输出必须是一张纯净的独立摄影作品，画面范围完全由摄影构图决定，不得有任何后期 UI 叠加层、边框、水印或角标
+- English negatives: NO live streaming badge, NO "LIVE" watermark, NO recording dot, NO play/pause button, NO pagination indicator (1/2, 1/3), NO left/right navigation arrows, NO carousel dots, NO social media UI (like/comment/share/cart icons), NO platform logo (Xiaohongshu, Douyin, TikTok, Instagram), NO text overlay, NO sticker, NO price tag, NO caption, NO subtitle bar, NO image slice or carousel strip at the edge, NO multi-panel collage. Output must be a single clean standalone photograph with NO UI chrome.`;
 
   // —— 路径一：指定了风格 ——
   if (options.style) {
@@ -403,14 +413,28 @@ function buildShowcasePrompts(style?: string): ShowcaseAnglePrompt {
 - 颜色、花纹、面料、褶皱、装饰、开合方式必须与参考图1一致，不得换色/换花/换料/增减装饰。
 - 若参考图为双层结构（纱+布），成片保留双层结构。
 
-【成片视角硬约束】
-- 一律【人眼平视】：镜头高度≈1.5m，水平方向拍摄，垂直墙线保持垂直。
-- 严禁仰拍（天花板入镜、窗帘呈梯形、灭点上移）；严禁俯拍整幅窗帘。
-- 参考图1本身若是仰拍商品图，无视其视角，成片必须重新构图。
+【成片机位 · 硬约束（正向指令）】
+- 相机高度：1.4-1.6m（人眼平视高度），镜头光轴严格水平、与地平线平行。
+- 墙面垂直线：保持严格垂直，不得汇聚到上方或下方（即：无仰拍灭点、无俯拍灭点）。
+- 天花板：画面上方 0-20% 或完全不入画，严禁大面积天花板入镜。
+- 地面：画面下方 0-30%，严禁从膝盖/地面以下仰视窗帘，严禁把窗帘拍成底窄顶宽的梯形。
+- 画幅内窗帘主体：顶端轨道在画面上 15%-30%，底部落地在画面下 0-15%，窗帘呈【上下等宽】的矩形轮廓。
+- 参考图1若本身是仰拍商品图，一律无视其视角，成片必须按上述正向机位参数重新构图。
+- English directives: eye-level horizontal camera angle at 1.5m height, camera axis strictly parallel to the floor, vertical walls stay vertical, NO low-angle upward shot, NO worm's-eye view, NO trapezoidal curtain shape; curtain appears as an even rectangular silhouette from top rod to floor.
 
 【画质硬约束】
 - 商业摄影级真实质感；禁止塑料感、卡通化、过曝 HDR、AI 合成边缘、塑料光泽。
-- 用户选定风格倾向：${styleName}（仅作氛围参考，不限制你对场景/光线的自由创作）。`;
+- 用户选定风格倾向：${styleName}（仅作氛围参考，不限制你对场景/光线的自由创作）。
+
+【Negative Prompt · 禁止出现任何平台 / 社媒 / UI 痕迹（硬禁）】
+- 绝对禁止任何直播标签：LIVE 标、"直播中"角标、红点录制圆圈、播放/暂停按钮、音量图标
+- 绝对禁止任何相册/图集 UI：页码计数器（如 1/2、1/3）、左右切换箭头（‹ ›）、小圆点分页指示器
+- 绝对禁止任何平台水印：小红书、抖音、快手、淘宝、京东、微信、Instagram、TikTok、Xiaohongshu、Douyin 等平台 logo 或字样
+- 绝对禁止任何叠加文字/贴纸：价格标签、"推广"字样、商品标题、优惠券、emoji 表情、手写字、字幕条
+- 绝对禁止任何社交互动 UI：点赞/评论/收藏/分享/购物车图标及按钮
+- 绝对禁止画面切片或多图拼接：底边/侧边不得露出下一张图的边缘、不得分屏/九宫格/缩略图条
+- 输出必须是一张纯净、独立的摄影作品，没有任何 UI 叠加层、边框、水印、角标
+- English negatives: NO "LIVE" badge, NO recording dot, NO pagination (1/2), NO carousel arrows ‹ ›, NO dot indicators, NO social media UI (like/comment/share/cart), NO platform logo (Xiaohongshu, Douyin, TikTok), NO text overlay, NO sticker, NO price tag, NO subtitle, NO image slice at edge, NO multi-panel collage. Single clean photograph only, NO UI chrome.`;
 
   // 为每个角度准备风格变体池，每次生成时随机抽取一条，确保同角度也不重样
   const verticalVariants = [
@@ -421,7 +445,7 @@ function buildShowcasePrompts(style?: string): ShowcaseAnglePrompt {
 
   const horizontalVariants = [
     '建筑摄影杂志大片：广角 24mm 室内全景，对称或三分构图，落地窗从画面一侧延伸到另一侧，窗帘占据画面 1/3，另一侧出现真皮沙发/矮几/艺术画，色调高级灰+原木暖色。',
-    '家居生活杂志内页风：35mm 中焦、斜向构图、柔和漫射光，画面里有一个正在泡茶或看书的人物（背影或侧影），窗帘在画面黄金分割点上被自然带出，生活气息浓。',
+    '家居生活杂志内页风：35mm 中焦、相机水平端平、三分法构图（人物放在画面左 1/3 或右 1/3 分割线上）、柔和漫射光，画面里有一个正在泡茶或看书的人物（背影或侧影），窗帘在画面黄金分割点上被自然带出，生活气息浓。',
     '豪华样板间摄影风：28mm 广角、水平构图、大理石+黄铜质感，吊灯反射、落地窗外虚化城市景，窗帘从天花板一直垂到地板，褶皱清晰立体。色调冷白+暖金。',
   ];
 

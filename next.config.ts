@@ -1,8 +1,17 @@
 import type { NextConfig } from 'next';
 
+const corsHeaders = [
+  { key: 'Access-Control-Allow-Origin', value: '*' },
+  { key: 'Access-Control-Allow-Methods', value: 'GET, POST, OPTIONS' },
+  { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
+];
+
+const cspHeader = {
+  key: 'Content-Security-Policy',
+  value: 'frame-ancestors *',
+};
+
 const nextConfig: NextConfig = {
-  // outputFileTracingRoot: path.resolve(__dirname, '../../'),  // Uncomment and add 'import path from "path"' if needed
-  /* config options here */
   allowedDevOrigins: ['*.dev.coze.site'],
   images: {
     remotePatterns: [
@@ -12,6 +21,20 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+  },
+  async headers() {
+    return [
+      {
+        // 所有路径：允许 iframe 嵌入
+        source: '/:path*',
+        headers: [cspHeader],
+      },
+      {
+        // SaaS 代理接口：全开放 CORS
+        source: '/api/tool/:path*',
+        headers: corsHeaders,
+      },
+    ];
   },
 };
 
