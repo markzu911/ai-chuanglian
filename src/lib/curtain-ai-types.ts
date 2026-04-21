@@ -1,6 +1,6 @@
 export type GenerationMode = 'replace' | 'add' | 'auto' | 'showcase';
 
-export type ShowcaseAngle = 'vertical' | 'horizontal' | 'detail' | 'scene';
+export type ShowcaseAngle = 'hero' | 'lifestyle' | 'detail' | 'layered';
 
 export type CurtainStructure = 'auto' | 'single' | 'double';
 

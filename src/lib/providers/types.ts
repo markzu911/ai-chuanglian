@@ -15,6 +15,14 @@ export interface GenerationResult {
   error?: string;
 }
 
+export type ImageAspectRatio = '1:1' | '4:3' | '3:4' | '16:9' | '9:16';
+
+export interface ImageGenerationPrompt {
+  prompt: string;
+  negative_prompt?: string;
+  aspect_ratio?: ImageAspectRatio;
+}
+
 export interface ImageProvider {
   /** provider 名字，用于日志和调试 */
   readonly name: string;
@@ -32,7 +40,7 @@ export interface ImageProvider {
    * @param curtainReferences 窗帘参考图列表
    */
   generateImage(
-    prompt: string,
+    prompt: string | ImageGenerationPrompt,
     sceneImage: string,
     curtainReferences: CurtainReference[]
   ): Promise<GenerationResult>;

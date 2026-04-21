@@ -6,8 +6,6 @@
 
 import { useState, useCallback, useRef } from 'react';
 import type {
-  CurtainReference,
-  CurtainStructure,
   GenerateRequestPayload,
   SceneAnalysisResult,
 } from '@/lib/curtain-ai-types';
@@ -24,6 +22,30 @@ export interface GenerationState {
 }
 
 export type GenerateOptions = GenerateRequestPayload;
+
+function formatGenerationError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return '生成失败，请稍后重试';
+  }
+
+  if (error.name === 'AbortError') {
+    return '已取消';
+  }
+
+  if (
+    error.message.includes('fetch failed') ||
+    error.message.includes('Failed to fetch') ||
+    error.message.includes('NetworkError')
+  ) {
+    return '网络连接中断或服务端响应超时，请稍后重试';
+  }
+
+  if (error.message.startsWith('HTTP error:')) {
+    return `服务请求失败（${error.message.replace('HTTP error: ', 'HTTP ')})`;
+  }
+
+  return error.message;
+}
 
 /**
  * AI 生图 Hook
@@ -117,8 +139,8 @@ export function useImageGeneration() {
                 setState((prev) => ({
                   ...prev,
                   generatedImages: event.data as string[],
-                  progress: 100,
-                  message: '生成完成',
+                  // 如果还没完成，不要强制设置 100% 和 "生成完成"
+                  // 进度由 progress 事件控制
                 }));
                 break;
 
@@ -126,6 +148,7 @@ export function useImageGeneration() {
                 setState((prev) => ({
                   ...prev,
                   error: event.error as string,
+                  message: typeof event.error === 'string' ? event.error : prev.message,
                   isGenerating: false,
                 }));
                 break;
@@ -133,6 +156,8 @@ export function useImageGeneration() {
               case 'done':
                 setState((prev) => ({
                   ...prev,
+                  progress: 100,
+                  message: '生成完成',
                   isGenerating: false,
                 }));
                 break;
@@ -153,7 +178,8 @@ export function useImageGeneration() {
         setState((prev) => ({
           ...prev,
           isGenerating: false,
-          error: error instanceof Error ? error.message : '生成失败',
+          error: formatGenerationError(error),
+          message: formatGenerationError(error),
         }));
       }
     }

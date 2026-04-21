@@ -13,7 +13,11 @@ export async function resolveImageInput(url: string): Promise<string> {
     return url;
   }
 
-  if (url.startsWith('http://localhost') || url.startsWith('http://127.0.0.1')) {
+  if (
+    url.startsWith('http://localhost') ||
+    url.startsWith('http://127.0.0.1') ||
+    url.startsWith('http://0.0.0.0')
+  ) {
     try {
       const fs = await import('fs/promises');
       const path = await import('path');

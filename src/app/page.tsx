@@ -29,7 +29,7 @@ interface AnalyzeResponse {
 }
 
 export default function Home() {
-  const [pageMode, setPageMode] = useState<'scene' | 'showcase'>('scene'); // 页面模式：场景替换 vs 艺术展示
+  const [pageMode, setPageMode] = useState<'scene' | 'showcase'>('scene'); // 页面模式：场景替换 vs 电商展示
   const [sceneImage, setSceneImage] = useState<UploadedImage | null>(null);
   const [singleCurtainImages, setSingleCurtainImages] = useState<UploadedImage[]>([]);
   const [fabricCurtainImages, setFabricCurtainImages] = useState<UploadedImage[]>([]);
@@ -44,7 +44,7 @@ export default function Home() {
     structure: 'auto',
     style: '',
     count: 1,
-    showcaseAngles: ['vertical', 'horizontal', 'detail', 'scene'],
+    showcaseAngles: ['hero', 'lifestyle', 'detail', 'layered'],
   });
 
   const {
@@ -134,7 +134,7 @@ export default function Home() {
     const saasPrompt = saas.context.prompt.length > 0 ? saas.context.prompt : undefined;
 
     if (pageMode === 'showcase') {
-      // 艺术展示模式
+      // 电商展示模式
       if (!singleCurtainImages.length) return;
 
       startGeneration({
@@ -213,7 +213,7 @@ export default function Home() {
       structure: 'auto',
       style: '',
       count: 1,
-      showcaseAngles: ['vertical', 'horizontal', 'detail', 'scene'],
+      showcaseAngles: ['hero', 'lifestyle', 'detail', 'layered'],
     });
   }, [reset]);
 
@@ -275,7 +275,7 @@ export default function Home() {
               }}
               disabled={isGenerating}
             >
-              艺术展示
+              电商展示
             </Button>
           </div>
         </div>
@@ -384,7 +384,7 @@ export default function Home() {
               </>
             )}
 
-            {/* 艺术展示模式 */}
+            {/* 电商展示模式 */}
             {pageMode === 'showcase' && (
               <>
                 <ImageUploader
@@ -394,7 +394,7 @@ export default function Home() {
                   maxCount={1}
                   disabled={isGenerating}
                   title="窗帘商品图"
-                  description="上传1张清晰的窗帘商品图，可在右侧勾选要生成的角度（1-4 张，按需选择更省成本）。"
+                  description="上传1张清晰的窗帘商品图，可在右侧勾选远景、中近景、材质细节、遮光效果这几类淘宝常见商品图。"
                 />
               </>
             )}
@@ -469,6 +469,8 @@ export default function Home() {
                 generatedImages={generatedImages}
                 isGenerating={isGenerating}
                 onReset={handleReset}
+                pageMode={pageMode}
+                showcaseAngles={pageMode === 'showcase' ? options.showcaseAngles : undefined}
               />
             )}
 

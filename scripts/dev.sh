@@ -1,13 +1,30 @@
 #!/bin/bash
 set -Eeuo pipefail
 
-
 PORT=5000
 COZE_WORKSPACE_PATH="${COZE_WORKSPACE_PATH:-$(pwd)}"
 DEPLOY_RUN_PORT=5000
-
+HOST="${HOST:-0.0.0.0}"
 
 cd "${COZE_WORKSPACE_PATH}"
+
+require_node_version() {
+    local node_version major minor
+    if ! command -v node >/dev/null 2>&1; then
+      echo "Node.js is not installed."
+      exit 1
+    fi
+
+    node_version=$(node -v | sed 's/^v//')
+    major=$(printf '%s' "${node_version}" | cut -d. -f1)
+    minor=$(printf '%s' "${node_version}" | cut -d. -f2)
+
+    if [[ "${major}" -lt 20 ]] || [[ "${major}" -eq 20 && "${minor}" -lt 9 ]]; then
+      echo "Node.js >= 20.9.0 is required. Current version: v${node_version}"
+      echo "Please switch Node version first, then rerun pnpm dev."
+      exit 1
+    fi
+}
 
 kill_port_if_listening() {
     local pids
@@ -27,8 +44,10 @@ kill_port_if_listening() {
     fi
 }
 
+require_node_version
+
 echo "Clearing port ${PORT} before start."
 kill_port_if_listening
-echo "Starting HTTP service on port ${PORT} for dev..."
+echo "Starting Next.js dev server on http://${HOST}:${PORT} ..."
 
-PORT=$PORT pnpm tsx watch src/server.ts
+pnpm exec next dev --hostname "${HOST}" --port "${PORT}"

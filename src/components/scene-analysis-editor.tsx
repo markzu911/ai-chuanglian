@@ -65,7 +65,7 @@ export function SceneAnalysisEditor({
             <h3 className="font-medium">窗区识别与手动校正</h3>
           </div>
           <p className="text-sm text-muted-foreground">
-            识别结果不准时，可以先修正窗区再生成，修正后的结果会直接传给后端接口。
+            识别结果不准时，可以先修正窗区再生成，尤其是“中间纱帘 + 两侧布帘”的双层场景，可直接把窗区改成双层。修正后的结果会直接传给后端接口。
           </p>
         </div>
         <Button variant="outline" size="sm" onClick={onReset} disabled={disabled}>

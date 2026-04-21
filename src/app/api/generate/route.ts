@@ -9,6 +9,7 @@ import type {
   CurtainStructure,
   GenerateRequestPayload,
   SceneAnalysisResult,
+  ShowcaseAngle,
 } from '@/lib/curtain-ai-types';
 import { mergePromptWithSaas } from '@/lib/saas-utils';
 
@@ -24,6 +25,24 @@ export interface GenerateResponse {
   error?: string;
 }
 
+function startWaitingTicker(sendEvent: (data: GenerateResponse) => void, initialProgress: number) {
+  const waitingMessages = [
+    '模型仍在生成，请保持页面开启...',
+    '图像细节正在精修，马上就好...',
+    '后台质检与重试进行中...',
+  ];
+
+  let tick = 0;
+  let progress = initialProgress;
+
+  return setInterval(() => {
+    progress = Math.min(88, progress + 2);
+    const message = waitingMessages[tick % waitingMessages.length];
+    tick += 1;
+    sendEvent({ type: 'progress', progress, data: message });
+  }, 3000);
+}
+
 /**
  * POST /api/generate
  * 流式生成窗帘效果图
@@ -34,8 +53,22 @@ export async function POST(request: NextRequest) {
 
     // 参数校验
     const mode = body.mode || 'auto';
-    
-    // 艺术展示模式不需要场景图片
+
+    // 前线入口日志：确认请求到达 + 模式 + 角度列表
+    try {
+      const { appendFileSync, mkdirSync } = await import('node:fs');
+      const { join } = await import('node:path');
+      const logPath = process.env.CURTAIN_DEBUG_LOG || join(process.cwd(), 'tmp', 'curtain-debug.log');
+      mkdirSync(join(process.cwd(), 'tmp'), { recursive: true });
+      appendFileSync(
+        logPath,
+        `[${new Date().toISOString()}][route POST] mode=${mode} showcaseAngles=${JSON.stringify(body.showcaseAngles)} count=${body.count} hasSceneImage=${Boolean(body.sceneImage)} curtainImagesCount=${body.curtainImages?.length || 0}\n\n`
+      );
+    } catch (logError) {
+      console.warn('[route POST] debug log failed:', logError);
+    }
+
+    // 电商展示模式不需要场景图片
     if (mode !== 'showcase' && !body.sceneImage) {
       return NextResponse.json(
         { error: '缺少场景图片' },
@@ -43,10 +76,10 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // 艺术展示模式需要窗帘图片
+    // 电商展示模式需要窗帘图片
     if (mode === 'showcase' && (!body.curtainImages || body.curtainImages.length === 0)) {
       return NextResponse.json(
-        { error: '艺术展示模式需要提供窗帘商品图' },
+        { error: '电商展示模式需要提供窗帘商品图' },
         { status: 400 }
       );
     }
@@ -71,9 +104,9 @@ export async function POST(request: NextRequest) {
         }, 15000);
 
         try {
-          // 艺术展示模式处理
+          // 电商展示模式处理
           if (mode === 'showcase') {
-            sendEvent({ type: 'progress', progress: 10, data: '正在生成艺术展示图...' });
+            sendEvent({ type: 'progress', progress: 10, data: '正在生成电商展示图...' });
 
             const curtainImage = body.curtainImages?.[0];
             if (!curtainImage) {
@@ -82,6 +115,9 @@ export async function POST(request: NextRequest) {
               return;
             }
 
+            const waitingTicker = startWaitingTicker(sendEvent, 18);
+
+            const currentImageMap = new Map<ShowcaseAngle, string>();
             const results = await generateCurtainShowcase(
               {
                 curtainImage,
@@ -91,22 +127,41 @@ export async function POST(request: NextRequest) {
               },
               (progress, message) => {
                 sendEvent({ type: 'progress', progress, data: message });
+              },
+              (imageUrl, angle) => {
+                // 按角度索引覆盖：初版与质检后最终版共享一个 key，前端只会看到每角度一张
+                currentImageMap.set(angle, imageUrl);
+                sendEvent({
+                  type: 'image',
+                  data: Array.from(currentImageMap.values()),
+                });
               }
-            );
+            ).finally(() => clearInterval(waitingTicker));
 
-            const imageUrls = results
+            const finalImageUrls = results
               .filter((r) => r.success)
               .map((r) => r.imageUrl);
+            const failedMessages = results
+              .filter((r) => !r.success && r.error)
+              .map((r) => r.error as string);
 
-            if (imageUrls.length > 0) {
+            if (finalImageUrls.length > 0) {
+              // 最后确保推送一次完整的列表
               sendEvent({
                 type: 'image',
-                data: imageUrls,
+                data: finalImageUrls,
               });
+
+              if (failedMessages.length > 0) {
+                sendEvent({
+                  type: 'error',
+                  error: `部分电商图生成失败：${failedMessages.join('；')}`,
+                });
+              }
             } else {
               sendEvent({
                 type: 'error',
-                error: results[0]?.error || '艺术展示生成失败',
+                error: results[0]?.error || '电商展示生成失败',
               });
             }
 
@@ -130,6 +185,8 @@ export async function POST(request: NextRequest) {
             // 单图生成
             sendEvent({ type: 'progress', progress: 10, data: '正在生成效果图...' });
 
+            const waitingTicker = startWaitingTicker(sendEvent, 28);
+
             const result = await generateCurtainImage({
               sceneImage: body.sceneImage,
               curtainReferences,
@@ -139,7 +196,7 @@ export async function POST(request: NextRequest) {
               sceneAnalysisOverride: sceneAnalysis,
             }, (progress, message) => {
               sendEvent({ type: 'progress', progress, data: message });
-            });
+            }).finally(() => clearInterval(waitingTicker));
 
             if (result.success) {
               sendEvent({
@@ -156,6 +213,7 @@ export async function POST(request: NextRequest) {
             // 多方案生成
             sendEvent({ type: 'progress', progress: 10, data: `正在生成 ${count} 个方案...` });
 
+            const currentImageUrls: string[] = [];
             const results = await generateMultipleSchemes(
               {
                 sceneImage: body.sceneImage,
@@ -168,17 +226,26 @@ export async function POST(request: NextRequest) {
               count,
               (progress, message) => {
                 sendEvent({ type: 'progress', progress, data: message });
+              },
+              (imageUrl) => {
+                currentImageUrls.push(imageUrl);
+                // 实时推送当前已生成的图片列表
+                sendEvent({
+                  type: 'image',
+                  data: [...currentImageUrls],
+                });
               }
             );
 
-            const imageUrls = results
+            const finalImageUrls = results
               .filter((r) => r.success)
               .map((r) => r.imageUrl);
 
-            if (imageUrls.length > 0) {
+            if (finalImageUrls.length > 0) {
+              // 确保推送一次完整的列表
               sendEvent({
                 type: 'image',
-                data: imageUrls,
+                data: finalImageUrls,
               });
             } else {
               sendEvent({

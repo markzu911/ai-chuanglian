@@ -73,7 +73,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<UploadRes
     await fs.writeFile(filePath, imageBuffer);
 
     // 构建可访问的 URL
-    const baseUrl = process.env.COZE_PROJECT_DOMAIN_DEFAULT || request.nextUrl.origin;
+    let baseUrl = process.env.COZE_PROJECT_DOMAIN_DEFAULT || request.nextUrl.origin;
+
+    // 如果 origin 是 0.0.0.0，在本地环境下通常应该指向 localhost 才能在浏览器中正常显示
+    if (baseUrl.includes('//0.0.0.0')) {
+      baseUrl = baseUrl.replace('//0.0.0.0', '//localhost');
+    }
+
     const imageUrl = `${baseUrl}/uploads/${filename}`;
 
     return NextResponse.json({

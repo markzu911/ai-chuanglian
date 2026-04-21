@@ -8,13 +8,14 @@ import { Progress } from '@/components/ui/progress';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import type { ShowcaseAngle } from '@/lib/curtain-ai-types';
 
 export interface GenerationOptions {
   mode: 'replace' | 'add' | 'auto';
   structure: 'auto' | 'single' | 'double';
   style: string;
   count: number;
-  showcaseAngles: Array<'vertical' | 'horizontal' | 'detail' | 'scene'>;
+  showcaseAngles: ShowcaseAngle[];
 }
 
 interface GenerationPanelProps {
@@ -47,10 +48,10 @@ const COUNT_OPTIONS = [
 ];
 
 const SHOWCASE_ANGLE_OPTIONS = [
-  { value: 'vertical' as const, label: '竖版', description: '竖版艺术大片' },
-  { value: 'horizontal' as const, label: '横版', description: '横版艺术大片' },
-  { value: 'detail' as const, label: '细节', description: '特写/局部' },
-  { value: 'scene' as const, label: '场景', description: '完整空间故事' },
+  { value: 'hero' as const, label: '远景展示', description: '完整挂装效果，带空间比例' },
+  { value: 'lifestyle' as const, label: '中近景展示', description: '局部场景，强调风格氛围' },
+  { value: 'detail' as const, label: '材质细节', description: '纹理、织法、手感近景' },
+  { value: 'layered' as const, label: '遮光效果', description: '透光或遮光能力展示' },
 ];
 
 const STRUCTURE_OPTIONS = [
@@ -213,11 +214,11 @@ export function GenerationPanel({
         </div>
       )}
 
-      {/* 艺术展示角度 - 仅在 showcase 模式下显示 */}
+      {/* 电商展示用途 - 仅在 showcase 模式下显示 */}
       {pageMode === 'showcase' && (
         <div className="space-y-3">
           <Label className="text-base font-medium">
-            展示角度（多选，{options.showcaseAngles.length} 张）
+            展示用途（多选，{options.showcaseAngles.length} 张）
           </Label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {SHOWCASE_ANGLE_OPTIONS.map((opt) => {
@@ -247,7 +248,7 @@ export function GenerationPanel({
             })}
           </div>
           <p className="text-xs text-muted-foreground">
-            可按需勾选，生成越少越省成本（并行出图，速度更快）
+            按电商素材用途勾选即可，生成越少越省成本（并行出图，速度更快）
           </p>
         </div>
       )}

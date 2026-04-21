@@ -23,13 +23,17 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import type { ShowcaseAngle } from '@/lib/curtain-ai-types';
 
 interface GeneratedResultProps {
   originalImage?: string;
   generatedImages: string[];
   isGenerating: boolean;
   onReset: () => void;
+  pageMode?: 'scene' | 'showcase';
+  showcaseAngles?: ShowcaseAngle[];
 }
 
 export function GeneratedResult({
@@ -37,6 +41,8 @@ export function GeneratedResult({
   generatedImages,
   isGenerating,
   onReset,
+  pageMode = 'scene',
+  showcaseAngles = [],
 }: GeneratedResultProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
@@ -69,6 +75,10 @@ export function GeneratedResult({
   };
 
   const selectedImage = generatedImages[selectedIndex] || generatedImages[0];
+  const showcaseItems = generatedImages.map((url, index) => ({
+    url,
+    angle: showcaseAngles[index] || 'hero',
+  }));
 
   return (
     <Card className="p-6 space-y-6">
@@ -119,7 +129,29 @@ export function GeneratedResult({
         </div>
       </div>
 
-      {generatedImages.length > 1 ? (
+      {pageMode === 'showcase' ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          {showcaseItems.map((item, index) => {
+            const meta = getShowcasePreviewMeta(item.angle);
+            return (
+              <div key={`${item.angle}-${index}`} className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary">{meta.label}</Badge>
+                    <span className="text-xs text-muted-foreground">{meta.ratioLabel}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">{meta.description}</span>
+                </div>
+                <ResultImage
+                  src={item.url}
+                  alt={meta.label}
+                  aspectClassName={meta.aspectClassName}
+                />
+              </div>
+            );
+          })}
+        </div>
+      ) : generatedImages.length > 1 ? (
         <Tabs
           value={String(selectedIndex)}
           onValueChange={(v) => setSelectedIndex(Number(v))}
@@ -160,7 +192,17 @@ export function GeneratedResult({
   );
 }
 
-function ResultImage({ src, alt, sm = false }: { src: string; alt: string; sm?: boolean }) {
+function ResultImage({
+  src,
+  alt,
+  sm = false,
+  aspectClassName,
+}: {
+  src: string;
+  alt: string;
+  sm?: boolean;
+  aspectClassName?: string;
+}) {
   const [isLoaded, setIsLoaded] = React.useState(false);
   const [open, setOpen] = React.useState(false);
   const [zoom, setZoom] = React.useState(1);
@@ -184,7 +226,7 @@ function ResultImage({ src, alt, sm = false }: { src: string; alt: string; sm?: 
         <div 
           className={cn(
             "relative rounded-lg overflow-hidden bg-muted cursor-zoom-in group",
-            sm ? "aspect-square sm:aspect-video" : "aspect-video"
+            aspectClassName || (sm ? "aspect-square sm:aspect-video" : "aspect-video")
           )}
         >
           {!isLoaded && (
@@ -280,4 +322,43 @@ function ResultImage({ src, alt, sm = false }: { src: string; alt: string; sm?: 
       </DialogContent>
     </Dialog>
   );
+}
+
+function getShowcasePreviewMeta(angle: ShowcaseAngle): {
+  label: string;
+  description: string;
+  ratioLabel: string;
+  aspectClassName: string;
+} {
+  switch (angle) {
+    case 'lifestyle':
+      return {
+        label: '中近景展示',
+        description: '局部场景与风格氛围',
+        ratioLabel: '3:4',
+        aspectClassName: 'aspect-[3/4]',
+      };
+    case 'detail':
+      return {
+        label: '材质细节',
+        description: '面料纹理与做工特写',
+        ratioLabel: '3:4',
+        aspectClassName: 'aspect-[3/4]',
+      };
+    case 'layered':
+      return {
+        label: '遮光效果',
+        description: '透光或遮光能力展示',
+        ratioLabel: '3:4',
+        aspectClassName: 'aspect-[3/4]',
+      };
+    case 'hero':
+    default:
+      return {
+        label: '远景展示',
+        description: '完整挂装与空间比例',
+        ratioLabel: '3:4',
+        aspectClassName: 'aspect-[3/4]',
+      };
+  }
 }
